@@ -18,7 +18,7 @@ class MessageWithListener extends Commando.Command {
         },
         {
           key: 'reactions',
-          prompt: 'Enter reaction(s) to listen for, then the roles that each correspond to: <reaction> <reaction> <role> <role>',
+          prompt: 'Enter reaction(s) to listen for, then the roles that each correspond to, each on a different line. \n<reaction>\n<reaction>\n<role>\n<role>',
           type: 'string',
           infinite: true,
         }
@@ -27,11 +27,13 @@ class MessageWithListener extends Commando.Command {
   }
 
   async run(message, { msg, reactions }) {
+    message.delete();
     await message.say(msg);
 
     const reactToRole = {};
     for (let i = 0; i < reactions.length / 2; i++) {
       reactToRole[reactions[i]] = reactions[i + reactions.length / 2];
+      message.channel.fetchMessage(this.client.user.lastMessageID).then(message => message.react(reactions[i]));
     }
 
     const sequelize = new Sequelize('database', 'user', 'password', {
@@ -64,6 +66,7 @@ class MessageWithListener extends Commando.Command {
     });
 
     Msgs.sync({force: true}).then(() => {
+      console.log(this.client.user.lastMessageID);
       Object.keys(reactToRole).forEach(react => {
         Msgs.create({
           msg_id: this.client.user.lastMessageID,

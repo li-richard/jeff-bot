@@ -49,33 +49,30 @@ bot.on('ready', () => {
 });
 
 bot.on('raw', event => {
-  if (event.t !== 'MESSAGE_REACTION_ADD') return;
-  if (event.d === null) return;
-  if (event.d.message_id !== null) {
-    Msgs.findAll({
-      where: {
-        msg_id: event.d.message_id,
-      }
-    })
-    .then(data => {
-      //console.log(data);
-      //console.log(event.d.emoji.name);
-      data.forEach(msg => {
-        const guild = bot.guilds.get(event.d.guild_id);
-        const userId = event.d.user_id;
-        let roleId = '';
-        guild.roles.keyArray().forEach(key => {
-          if (guild.roles.get(key).name === msg.dataValues.role) {
-            roleId = key;
-          }
-        });
-        if (msg.dataValues.msg_id === event.d.message_id && 
-            msg.dataValues.reaction === event.d.emoji.name) {
-          guild.fetchMember(userId).then(member => member.addRole(roleId));
+  if (event.t !== 'MESSAGE_REACTION_ADD' && event.t !== 'MESSAGE_REACTION_REMOVE') return;
+  if (event.d === null || event.d.message_id === null) return;
+  Msgs.findAll({
+    where: {
+      msg_id: event.d.message_id,
+    }
+  })
+  .then(data => {
+    //console.log(data);
+    //console.log(event.d.emoji.name);
+    data.forEach(msg => {
+      console.log(msg);
+      const guild = bot.guilds.get(event.d.guild_id);
+      const userId = event.d.user_id;
+      if (msg.dataValues.msg_id === event.d.message_id && msg.dataValues.reaction === event.d.emoji.name) {
+        if (event.t === 'MESSAGE_REACTION_REMOVE') {
+          guild.fetchMember(userId).then(member => member.removeRole(guild.roles.find('name', msg.dataValues.role)));
         }
-      });
+        else {
+          guild.fetchMember(userId).then(member => member.addRole(guild.roles.find('name', msg.dataValues.role)));
+        }
+      }
     });
-  }
+  });
 })
 
 
