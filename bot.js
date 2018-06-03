@@ -17,6 +17,12 @@ const Msgs = sequelize.define('msgs', {
   msg_id: {
     type: Sequelize.STRING,
   },
+  reaction: {
+    type: Sequelize.STRING,
+  },
+  role: {
+    type: Sequelize.STRING,
+  }
 });
 
 const bot = new Commando.Client({
@@ -26,7 +32,7 @@ const bot = new Commando.Client({
 });
 
 bot.once('ready', () => {
-  Msgs.sync();
+  Msgs.sync({force: true});
 })
 
 bot.registry.registerGroups([
@@ -43,6 +49,7 @@ bot.on('ready', () => {
 });
 
 bot.on('raw', event => {
+  if (event.t !== 'MESSAGE_REACTION_ADD') return;
   if (event.d === null) return;
   if (event.d.message_id !== null) {
     Msgs.findAll({
@@ -50,15 +57,26 @@ bot.on('raw', event => {
         msg_id: event.d.message_id,
       }
     })
-    .then(msg_ids => {
-      console.log(event.d.guild_id);
-      if (msg_ids.length > 0) {
-        bot.guilds.get(event.d.guild_id).fetchMember(event.d.user_id).then(member => member.addRole('452637569017184256'));
-      }
+    .then(data => {
+      //console.log(data);
+      //console.log(event.d.emoji.name);
+      data.forEach(msg => {
+        const guild = bot.guilds.get(event.d.guild_id);
+        const userId = event.d.user_id;
+        let roleId = '';
+        guild.roles.keyArray().forEach(key => {
+          if (guild.roles.get(key).name === msg.dataValues.role) {
+            roleId = key;
+          }
+        });
+        if (msg.dataValues.msg_id === event.d.message_id && 
+            msg.dataValues.reaction === event.d.emoji.name) {
+          guild.fetchMember(userId).then(member => member.addRole(roleId));
+        }
+      });
     });
   }
 })
-//448146015594479616
 
 
 /*

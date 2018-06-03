@@ -1,23 +1,38 @@
 const Commando = require('discord.js-commando');
 const Sequelize = require('sequelize');
 
-class roleReaction extends Commando.Command {
+class MessageWithListener extends Commando.Command {
   constructor(client) {
     super(client, {
       name: 'msg-with-listener',
       group: 'roles',
       memberName: 'msg-with-listener',
       description: 'Creates a message that allows you to set listeners for certain reactions',
-      args: [{
-        key: 'content',
-        prompt: 'no message entered',
-        type: 'string'
-      }]
+      argsType: 'multiple',
+      argsSingleQuotes: true,
+      args: [
+        {
+          key: 'msg',
+          prompt: 'Enter a message to listen for reactions on',
+          type: 'string'
+        },
+        {
+          key: 'reactions',
+          prompt: 'Enter reaction(s) to listen for, then the roles that each correspond to: <reaction> <reaction> <role> <role>',
+          type: 'string',
+          infinite: true,
+        }
+      ]
     });
   }
 
-  async run(message, { content }) {
-    await message.say(content);
+  async run(message, { msg, reactions }) {
+    await message.say(msg);
+
+    const reactToRole = {};
+    for (let i = 0; i < reactions.length / 2; i++) {
+      reactToRole[reactions[i]] = reactions[i + reactions.length / 2];
+    }
 
     const sequelize = new Sequelize('database', 'user', 'password', {
       host: 'localhost',
@@ -30,9 +45,9 @@ class roleReaction extends Commando.Command {
 
     sequelize
       .authenticate()
-      .then(function(err) {
+      .then(() => {
         console.log('Connection has been established successfully.');
-      }, function (err) {
+      }, (err) => {
         console.log('Unable to connect to the database:', err);
       });
     
@@ -40,12 +55,22 @@ class roleReaction extends Commando.Command {
       msg_id: {
         type: Sequelize.STRING,
       },
+      reaction: {
+        type: Sequelize.STRING,
+      },
+      role: {
+        type: Sequelize.STRING,
+      }
     });
 
-    Msgs.sync({}).then(() => {
-      Msgs.create({
-        msg_id: this.client.user.lastMessageID,
-      });
+    Msgs.sync({force: true}).then(() => {
+      Object.keys(reactToRole).forEach(react => {
+        Msgs.create({
+          msg_id: this.client.user.lastMessageID,
+          reaction: react,
+          role: reactToRole[react],
+        })
+      })
     });
 
     
@@ -67,4 +92,4 @@ class roleReaction extends Commando.Command {
   
 }
 
-module.exports = roleReaction;
+module.exports = MessageWithListener;

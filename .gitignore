@@ -1,4 +1,4 @@
 /vscode
 /database.sqlite
-./config.json
+config.json
 /node_modules
