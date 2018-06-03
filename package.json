@@ -10,6 +10,9 @@
   "description": "",
   "dependencies": {
     "discord.js": "^11.3.2",
-    "discord.js-commando": "^0.10.0"
+    "discord.js-commando": "^0.10.0",
+    "nodemon": "^1.17.5",
+    "sequelize": "^4.37.10",
+    "sqlite3": "^4.0.0"
   }
 }

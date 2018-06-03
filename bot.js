@@ -1,12 +1,33 @@
 const Discord = require('discord.js');
 const Commando = require('discord.js-commando');
+const Sequelize = require('sequelize');
+
 const { prefix, token, owner } = require('./config.json');
-//const bot = Discord.Client();
+
+const sequelize = new Sequelize('database', 'user', 'password', {
+  host: 'localhost',
+  dialect: 'sqlite',
+  logging: false,
+  operatorsAliases: false,
+  // SQLite only
+  storage: 'database.sqlite',
+});
+
+const Msgs = sequelize.define('msgs', {
+  msg_id: {
+    type: Sequelize.STRING,
+  },
+});
+
 const bot = new Commando.Client({
   commandPrefix: prefix,
   owner: owner,
   disableEveryone: false
 });
+
+bot.once('ready', () => {
+  Msgs.sync();
+})
 
 bot.registry.registerGroups([
     ['random', 'Random number generators'],
@@ -21,19 +42,23 @@ bot.on('ready', () => {
   bot.user.setActivity('upgrading some new stuff!');
 });
 
-bot.on('message', message => {
-  // preventing bot from reading non-command messages and self-written messages
-  const args = message.content.slice(prefix.length).split(/ +/);
-  const command = args.shift().toLowerCase();
-
-  if(message.content == 'ping'){
-    message.channel.send('pong!');    //sends message to channel without person tag
+bot.on('raw', event => {
+  if (event.d === null) return;
+  if (event.d.message_id !== null) {
+    Msgs.findAll({
+      where: {
+        msg_id: event.d.message_id,
+      }
+    })
+    .then(msg_ids => {
+      console.log(event.d.guild_id);
+      if (msg_ids.length > 0) {
+        bot.guilds.get(event.d.guild_id).fetchMember(event.d.user_id).then(member => member.addRole('452637569017184256'));
+      }
+    });
   }
-  if(message.content == 'beep'){
-    message.channel.send('boop.');
-  }
-});
-
+})
+//448146015594479616
 
 
 /*
